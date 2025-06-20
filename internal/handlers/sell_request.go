@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/middleware"
 	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/models"
+	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,29 +37,19 @@ func SellRequestHandler(c *gin.Context) {
 		return
 	}
 
-	// Insert the sell request into database
-	query := `INSERT INTO sell_requests (user_id, notes, price, address, property_type) 
-			  VALUES ($1, $2, $3, $4, $5) RETURNING id`
-
-	var insertedID int
-	err := db.QueryRow(c, query,
-		sellRequestData.UserID,
-		sellRequestData.Notes,
-		sellRequestData.Price,
-		sellRequestData.Address,
-		sellRequestData.PropertyType).Scan(&insertedID)
+	var userData, err = utils.GetUserDataById(sellRequestData.UserID, db)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to insert sell request",
+			"error":   "Failed to fetch userData",
 			"details": err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Sell request saved successfully",
-		"data":    sellRequestData,
-		"id":      insertedID,
+		"message":   "Sell request saved successfully",
+		"data":      sellRequestData,
+		"user_data": userData,
 	})
 }

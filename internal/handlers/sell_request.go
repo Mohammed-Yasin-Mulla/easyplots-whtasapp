@@ -63,8 +63,8 @@ func NewSellRequestHandler() gin.HandlerFunc {
 		log.Printf("WhatsApp Debug: User data - Name: %s, Phone: %s", userName, userData.Phone)
 
 		// For now, using hardcoded number for testing - you can switch to userData.Phone later
-		phoneNumber := "919480382078" // Change this to userData.Phone when ready
-		log.Printf("WhatsApp Debug: Attempting to send message to: %s", phoneNumber)
+
+		log.Printf("WhatsApp Debug: Attempting to send message to: %s", userData.Phone)
 
 		// Check if we should send to group instead of individual
 		log.Printf("WhatsApp Debug: Sending to group: %s", services.InternalGroupWhatsAppId)
@@ -82,14 +82,14 @@ func NewSellRequestHandler() gin.HandlerFunc {
 			//TODO: Need to add logging system
 		}
 
-		err = whatsappService.SendMessage(c.Request.Context(), phoneNumber, services.SellRequestWhatAppMessage(userName))
+		err = whatsappService.SendMessage(c.Request.Context(), userData.Phone, services.SellRequestWhatAppMessage(userName))
 
 		var whatsappStatus string
 		if err != nil {
 			log.Printf("WhatsApp Error: Failed to send message: %v", err)
 			whatsappStatus = "Failed to send WhatsApp message: " + err.Error()
 		} else {
-			log.Printf("WhatsApp Success: Message sent successfully to %s", phoneNumber)
+			log.Printf("WhatsApp Success: Message sent successfully to %s", userData.Phone)
 			whatsappStatus = "WhatsApp message sent successfully"
 		}
 
@@ -183,30 +183,10 @@ func HandleUserLogs(c *gin.Context) {
 		return
 	}
 
-	// Fetch property data if PropertyID is provided
-	var propertyData models.Property
-	var propertyErr error
-
-	if logRequestData.PropertyID != nil {
-		propertyData, propertyErr = utils.GetPropertyDataById(*logRequestData.PropertyID, db)
-		if propertyErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to fetch propertyData",
-				"details": propertyErr.Error(),
-			})
-			return
-		}
-	}
-
 	// Return the response
 	response := gin.H{
 		"message":   "User logs processed successfully",
 		"user_data": userData,
-	}
-
-	// Only include property data if it was fetched successfully
-	if logRequestData.PropertyID != nil && propertyErr == nil {
-		response["property_data"] = propertyData
 	}
 
 	// Handle different event types
@@ -217,6 +197,7 @@ func HandleUserLogs(c *gin.Context) {
 		if logRequestData.EventType.RequiresPropertyID() && logRequestData.PropertyID == nil {
 			response["warning"] = "Event requires a property ID, but none was provided."
 		}
+		PropertyInterest(c, userData, int(*logRequestData.PropertyID))
 
 	case models.ConstructionCallPressed, models.ConstructionWhatsAppPressed:
 		log.Printf("User %s interacted with construction item (event: %s)", userData.Name, logRequestData.EventType)
@@ -251,8 +232,6 @@ func RentalPropertyPost(c *gin.Context, user models.User) {
 		return
 	}
 
-	phoneNumber := "919480382078"
-
 	internalWAMessage := fmt.Sprintf(` *New Rental property post Received*
 	👤 *Name:* %s
 	📞 *Phone:* %s
@@ -281,7 +260,7 @@ Best,
 The Easyplots Team`, customerName)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
-	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)
+	whatsappService.SendMessage(c.Request.Context(), user.Phone, userFacingMessage)
 }
 
 func CustomPropertySearch(c *gin.Context, user models.User) {
@@ -290,8 +269,6 @@ func CustomPropertySearch(c *gin.Context, user models.User) {
 		// Handle error: service not found
 		return
 	}
-
-	phoneNumber := "919480382078"
 
 	internalWAMessage := fmt.Sprintf(`🤷 *Custom Property Request*
 	👤 *Name:* %s
@@ -317,7 +294,7 @@ Warm regards,
 The Easyplots Team`, customerName)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
-	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)
+	whatsappService.SendMessage(c.Request.Context(), user.Phone, userFacingMessage)
 }
 
 func ConstructionServicesEnq(c *gin.Context, user models.User) {
@@ -326,8 +303,6 @@ func ConstructionServicesEnq(c *gin.Context, user models.User) {
 		// Handle error: service not found
 		return
 	}
-
-	phoneNumber := "919480382078"
 
 	internalWAMessage := fmt.Sprintf(`🏗️ *Construction Services*
 	👤 *Name:* %s
@@ -353,5 +328,37 @@ Best regards,
 The Easyplots Team`, customerName)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
-	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)
+	whatsappService.SendMessage(c.Request.Context(), user.Phone, userFacingMessage)
+}
+
+func PropertyInterest(c *gin.Context, user models.User, propertyId int) {
+	whatsappService, waExists := middleware.GetWhatsApp(c)
+	db, dbExists := middleware.GetDB(c)
+	if !waExists || !dbExists {
+		log.Println("Could not get whatsapp service or db from context")
+		return
+	}
+
+	propertyData, err := utils.GetPropertyDataById(propertyId, db)
+	if err != nil {
+		log.Printf("Failed to get property data for id %d: %v", propertyId, err)
+		// Optionally, notify the group that an error occurred
+		errorMsg := fmt.Sprintf("⚠️ Error fetching property details for ID: %d\nUser: %s\nError: %v", propertyId, user.Name, err)
+		whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, errorMsg)
+		return
+	}
+
+	internalWAMessage := fmt.Sprintf(`✅ *Property Interest*
+👤 *Name:* %s
+📞 *Phone:* %s
+
+*Property Details:*
+ID: %d
+Title: %s
+Size: %s
+Link: https://easyplots.in/property/%d
+
+Message is not sent to the user, please call them directly.`, user.Name, user.Phone, propertyData.ID, propertyData.Title, propertyData.Size, propertyData.ID)
+
+	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
 }

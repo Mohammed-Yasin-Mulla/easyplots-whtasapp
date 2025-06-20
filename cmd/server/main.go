@@ -55,7 +55,7 @@ func main() {
 	router := gin.Default()
 
 	// Setup routes with WhatsApp service
-	routes.SetupRoutes(router, dbpool, whatsappService)
+	routes.SetupRoutes(router, dbpool, whatsappService, cfg)
 
 	// Start server
 	serverAddr := ":" + cfg.Port

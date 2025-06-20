@@ -202,24 +202,109 @@ func (w *WhatsAppService) SendMessage(ctx context.Context, phoneNumber, message 
 	return nil
 }
 
-// SendMessageWithTemplate sends a templated message for sell requests
-func (w *WhatsAppService) SendSellRequestMessage(ctx context.Context, phoneNumber, userName, propertyType, address string) error {
-	log.Printf("WhatsApp Debug: SendSellRequestMessage called - Phone: %s, User: %s", phoneNumber, userName)
+// SendGroupMessage sends a WhatsApp message to a group
+func (w *WhatsAppService) SendGroupMessage(ctx context.Context, groupJID, message string) error {
+	log.Printf("WhatsApp Debug: SendGroupMessage called with groupJID: %s", groupJID)
+
+	// Ensure client is connected
+	if !w.client.IsConnected() {
+		log.Printf("WhatsApp Error: Client is not connected")
+		return fmt.Errorf("WhatsApp client is not connected")
+	}
+
+	log.Printf("WhatsApp Debug: Client is connected, proceeding with group message send")
+
+	// Parse group JID
+	// Group JID should be in format: groupId@g.us
+	jid, err := types.ParseJID(groupJID)
+	if err != nil {
+		log.Printf("WhatsApp Error: Invalid group JID format: %v", err)
+		return fmt.Errorf("invalid group JID format: %v", err)
+	}
+
+	log.Printf("WhatsApp Debug: Group JID parsed successfully: %s", jid)
+
+	// Create message
+	msg := &waE2E.Message{
+		Conversation: &message,
+	}
+
+	log.Printf("WhatsApp Debug: Group message created, sending to %s", jid)
+
+	// Send message
+	response, err := w.client.SendMessage(ctx, jid, msg)
+	if err != nil {
+		log.Printf("WhatsApp Error: Failed to send group message: %v", err)
+		return fmt.Errorf("failed to send group message: %v", err)
+	}
+
+	log.Printf("WhatsApp: Group message sent successfully. ID: %s, Timestamp: %s",
+		response.ID, response.Timestamp)
+
+	return nil
+}
+
+// GetGroups retrieves all groups the bot is part of
+func (w *WhatsAppService) GetGroups(ctx context.Context) ([]*types.GroupInfo, error) {
+	log.Printf("WhatsApp Debug: GetGroups called")
+
+	// Ensure client is connected
+	if !w.client.IsConnected() {
+		log.Printf("WhatsApp Error: Client is not connected")
+		return nil, fmt.Errorf("WhatsApp client is not connected")
+	}
+
+	// Get all groups
+	groups, err := w.client.GetJoinedGroups()
+	if err != nil {
+		log.Printf("WhatsApp Error: Failed to get groups: %v", err)
+		return nil, fmt.Errorf("failed to get groups: %v", err)
+	}
+
+	log.Printf("WhatsApp Debug: Found %d groups", len(groups))
+	for i, group := range groups {
+		log.Printf("WhatsApp Debug: Group %d - JID: %s, Name: %s, Participants: %d",
+			i+1, group.JID, group.Name, len(group.Participants))
+	}
+
+	return groups, nil
+}
+
+// SendSellRequestToGroup sends a sell request message to a specific group
+func (w *WhatsAppService) SendSellRequestToGroup(ctx context.Context, groupJID, userName, propertyType, address, price, userPhone string) error {
+	log.Printf("WhatsApp Debug: SendSellRequestToGroup called - GroupJID: %s, User: %s", groupJID, userName)
 
 	message := fmt.Sprintf(`🏠 *New Sell Request Received*
-
 👤 *Name:* %s
 🏘️ *Property Type:* %s  
 📍 *Address:* %s
+💰 *Price:* %s
+📞 *Phone:* %s
+`, userName, propertyType, address, price, userPhone)
 
-Thank you for your sell request! Our team will contact you soon.
+	log.Printf("WhatsApp Debug: Group message template created, length: %d characters", len(message))
 
-*Real Estate Team*`, userName, propertyType, address)
-
-	log.Printf("WhatsApp Debug: Message template created, length: %d characters", len(message))
-
-	return w.SendMessage(ctx, phoneNumber, message)
+	return w.SendGroupMessage(ctx, groupJID, message)
 }
+
+// SendMessageWithTemplate sends a templated message for sell requests
+// func (w *WhatsAppService) SendSellRequestMessage(ctx context.Context, phoneNumber, userName, propertyType, address, price, userPhone string) error {
+// 	log.Printf("WhatsApp Debug: SendSellRequestMessage called - Phone: %s, User: %s", phoneNumber, userName)
+
+// 	message := fmt.Sprintf(`🏠 *New Sell Request Received*
+
+// 👤 *Name:* %s
+// 🏘️ *Property Type:* %s
+// 📍 *Address:* %s
+// 💰 *Price* %s
+// 📞 *phone no* : %s
+
+// *Real Estate Team*`, userName, propertyType, address, price, userPhone)
+
+// 	log.Printf("WhatsApp Debug: Message template created, length: %d characters", len(message))
+
+// 	return w.SendMessage(ctx, phoneNumber, message)
+// }
 
 // Event handler for WhatsApp events
 func (w *WhatsAppService) eventHandler(evt interface{}) {
@@ -250,4 +335,27 @@ func (w *WhatsAppService) Close() error {
 		return w.container.Close()
 	}
 	return nil
+}
+
+func SellRequestWhatAppMessage(userName string) string {
+	greeting := "Hello Sir/Madam,"
+	if userName != "" {
+		greeting = fmt.Sprintf("Hello %s,", userName)
+	}
+
+	return fmt.Sprintf(`%s
+We have received your property posting request 
+Please share the following details to allow us to list your property 
+- Property size
+- Type of property (NA, Gunta etc...)
+- Facing of the property
+- Google map location 
+- 2-3 images of your property
+- Size of the property 
+- Utraa Copy (for internal records keeping)
+
+If you have any quires please feel free to call us.
+
+Best regards,
+Easyplots Team`, greeting)
 }

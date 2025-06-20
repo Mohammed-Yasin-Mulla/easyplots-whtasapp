@@ -13,6 +13,8 @@ type Config struct {
 	GinMode             string
 	WhatsAppPairingMode string // "phone" or "qr"
 	WhatsAppPhoneNumber string // Phone number for pairing
+	WhatsAppGroupJID    string // Group JID for sending messages to groups
+
 }
 
 // Load loads configuration from environment variables
@@ -29,6 +31,7 @@ func Load() (*Config, error) {
 		GinMode:             getEnv("GIN_MODE", "debug"),
 		WhatsAppPairingMode: getEnv("WHATSAPP_PAIRING_MODE", "phone"), // Default to phone pairing
 		WhatsAppPhoneNumber: getEnv("WHATSAPP_PHONE_NUMBER", ""),
+		WhatsAppGroupJID:    getEnv("WHATSAPP_GROUP_JID", ""),
 	}
 
 	return config, nil
@@ -41,6 +44,14 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
+
+// getEnvBool gets an environment variable as a boolean with a fallback value
+// func getEnvBool(key string, fallback bool) bool {
+// 	if value := os.Getenv(key); value != "" {
+// 		return value == "true"
+// 	}
+// 	return fallback
+// }
 
 // Validate checks if required configuration values are present
 func (c *Config) Validate() error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/config"
 	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/database"
 	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/routes"
+	"github.com/Mohammed-Yasin-Mulla/easyplots-whtasapp.git/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,11 +36,26 @@ func main() {
 	}
 	defer database.Close(dbpool)
 
+	// Initialize WhatsApp service
+	ctx := context.Background()
+	whatsappService, err := services.NewWhatsAppService(ctx, cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize WhatsApp service: %v", err)
+	}
+	defer whatsappService.Close()
+
+	// Connect to WhatsApp (this may show QR code for first-time setup)
+	go func() {
+		if err := whatsappService.Connect(ctx); err != nil {
+			log.Printf("Failed to connect to WhatsApp: %v", err)
+		}
+	}()
+
 	// Initialize Gin router
 	router := gin.Default()
 
-	// Setup routes
-	routes.SetupRoutes(router, dbpool)
+	// Setup routes with WhatsApp service
+	routes.SetupRoutes(router, dbpool, whatsappService)
 
 	// Start server
 	serverAddr := ":" + cfg.Port

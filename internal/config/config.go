@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Port        string
-	GinMode     string
+	DatabaseURL         string
+	Port                string
+	GinMode             string
+	WhatsAppPairingMode string // "phone" or "qr"
+	WhatsAppPhoneNumber string // Phone number for pairing
 }
 
 // Load loads configuration from environment variables
@@ -22,9 +24,11 @@ func Load() (*Config, error) {
 	}
 
 	config := &Config{
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		Port:        getEnv("PORT", "8080"),
-		GinMode:     getEnv("GIN_MODE", "debug"),
+		DatabaseURL:         getEnv("DATABASE_URL", ""),
+		Port:                getEnv("PORT", "8080"),
+		GinMode:             getEnv("GIN_MODE", "debug"),
+		WhatsAppPairingMode: getEnv("WHATSAPP_PAIRING_MODE", "phone"), // Default to phone pairing
+		WhatsAppPhoneNumber: getEnv("WHATSAPP_PHONE_NUMBER", ""),
 	}
 
 	return config, nil

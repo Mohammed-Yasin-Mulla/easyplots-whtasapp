@@ -221,6 +221,7 @@ func HandleUserLogs(c *gin.Context) {
 	case models.ConstructionCallPressed, models.ConstructionWhatsAppPressed:
 		log.Printf("User %s interacted with construction item (event: %s)", userData.Name, logRequestData.EventType)
 		response["action"] = "Construction interaction"
+		ConstructionServicesEnq(c, userData)
 
 	case models.PostRentalPropertyPressed:
 		log.Printf("User %s pressed post rental property button", userData.Name)
@@ -264,19 +265,20 @@ func RentalPropertyPost(c *gin.Context, user models.User) {
 
 	userFacingMessage := fmt.Sprintf(`Hello %s,
 
-We're excited to hear that you're looking to post your property for rent on our platform. To make this happen.
-Please share the following details with us.
+Fantastic! We're thrilled to help you list your rental property on Easyplots and connect you with qualified tenants quickly.
 
-- Photos (2 to 3) 
-- Google Map Location 
-- A short description (e.g., 2BHK ground floor) 
-- Monthly Rent 
-- Contact & WhatsApp phone number 
+To create a standout listing that gets maximum visibility, please provide the following:
 
-Thank you! We're looking forward to helping you with this!
-Best regards,
-Easyplots Team
-	`, customerName)
+📸 *Photos:* 2-3 clear images of your property
+📍 *Location:* A Google Maps link for accuracy
+📝 *Description:* A brief summary (e.g., 2BHK, ground floor, key amenities)
+💰 *Rent:* The expected monthly rent
+📞 *Contact:* Your preferred phone & WhatsApp number
+
+Once we have these details, we'll get your property live for thousands of potential renters to see.
+
+Best,
+The Easyplots Team`, customerName)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
 	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)
@@ -302,12 +304,53 @@ func CustomPropertySearch(c *gin.Context, user models.User) {
 	}
 
 	userFacingMessage := fmt.Sprintf(`Hello %s,
-We noticed you had some trouble finding properties on our platform that suit your needs. 
 
-We’d love to help! If you could share your requirements with us, our team will be more than happy to search for properties that match what you're looking for.
+Searching for the perfect property? Let our experts do the heavy lifting for you!
+
+We offer a complimentary custom search service to match you with exclusive listings that meet your exact needs.
+
+Simply reply with your requirements (e.g., location, budget, property type, size), and we'll send you a curated list of the best options available.
+
+We look forward to finding your ideal property.
+
 Warm regards,
-The Easyplots Team
-	`, customerName)
+The Easyplots Team`, customerName)
+
+	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
+	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)
+}
+
+func ConstructionServicesEnq(c *gin.Context, user models.User) {
+	whatsappService, exists := middleware.GetWhatsApp(c)
+	if !exists {
+		// Handle error: service not found
+		return
+	}
+
+	phoneNumber := "919480382078"
+
+	internalWAMessage := fmt.Sprintf(`🏗️ *Construction Services*
+	👤 *Name:* %s
+	📞 *Phone:* %s
+	`, user.Name, user.Phone)
+
+	customerName := "Sir/Madam"
+	if user.Name != "" {
+		customerName = user.Name
+	}
+
+	userFacingMessage := fmt.Sprintf(`Hello %s,
+
+Thank you for your interest in our construction services!
+
+Whether you're planning to build your dream home or a new commercial project, our expert team is here to bring your vision to life with quality craftsmanship and on-time delivery.
+
+To provide you with a tailored consultation, could you tell us a bit more about your project?
+
+One of our specialists is ready to connect and discuss how we can help.
+
+Best regards,
+The Easyplots Team`, customerName)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
 	whatsappService.SendMessage(c.Request.Context(), phoneNumber, userFacingMessage)

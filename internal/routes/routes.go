@@ -17,8 +17,12 @@ func SetupRoutes(router *gin.Engine, dbpool *pgxpool.Pool, whatsappService *serv
 	// middle-ware
 	protectedRoute.Use(middleware.DatabaseMiddleware(dbpool))
 	protectedRoute.Use(middleware.ConfigMiddleware(cfg))
+	protectedRoute.Use(middleware.WhatsAppMiddleware(whatsappService))
 
 	// Webhook endpoints
-	protectedRoute.POST("/sell-request", handlers.NewSellRequestHandler(whatsappService))
+	protectedRoute.POST("/sell-request", handlers.NewSellRequestHandler())
+
+	// User logs endpoint
+	protectedRoute.POST("/user-logs", handlers.HandleUserLogs)
 
 }

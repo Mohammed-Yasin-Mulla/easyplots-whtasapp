@@ -40,3 +40,5 @@ func GetUserDataById(userId string, db *pgxpool.Pool) (models.User, error) {
 
 	return usersData, nil
 }
+
+

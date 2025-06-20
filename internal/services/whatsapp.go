@@ -316,3 +316,5 @@ If you have any quires please feel free to call us.
 Best regards,
 Easyplots Team`, greeting)
 }
+
+

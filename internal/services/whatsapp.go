@@ -244,31 +244,7 @@ func (w *WhatsAppService) SendGroupMessage(ctx context.Context, groupJID, messag
 	return nil
 }
 
-// GetGroups retrieves all groups the bot is part of
-func (w *WhatsAppService) GetGroups(ctx context.Context) ([]*types.GroupInfo, error) {
-	log.Printf("WhatsApp Debug: GetGroups called")
-
-	// Ensure client is connected
-	if !w.client.IsConnected() {
-		log.Printf("WhatsApp Error: Client is not connected")
-		return nil, fmt.Errorf("WhatsApp client is not connected")
-	}
-
-	// Get all groups
-	groups, err := w.client.GetJoinedGroups()
-	if err != nil {
-		log.Printf("WhatsApp Error: Failed to get groups: %v", err)
-		return nil, fmt.Errorf("failed to get groups: %v", err)
-	}
-
-	log.Printf("WhatsApp Debug: Found %d groups", len(groups))
-	for i, group := range groups {
-		log.Printf("WhatsApp Debug: Group %d - JID: %s, Name: %s, Participants: %d",
-			i+1, group.JID, group.Name, len(group.Participants))
-	}
-
-	return groups, nil
-}
+const InternalGroupWhatsAppId = "120363420697230363@g.us"
 
 // SendSellRequestToGroup sends a sell request message to a specific group
 func (w *WhatsAppService) SendSellRequestToGroup(ctx context.Context, groupJID, userName, propertyType, address, price, userPhone string) error {
@@ -286,25 +262,6 @@ func (w *WhatsAppService) SendSellRequestToGroup(ctx context.Context, groupJID, 
 
 	return w.SendGroupMessage(ctx, groupJID, message)
 }
-
-// SendMessageWithTemplate sends a templated message for sell requests
-// func (w *WhatsAppService) SendSellRequestMessage(ctx context.Context, phoneNumber, userName, propertyType, address, price, userPhone string) error {
-// 	log.Printf("WhatsApp Debug: SendSellRequestMessage called - Phone: %s, User: %s", phoneNumber, userName)
-
-// 	message := fmt.Sprintf(`🏠 *New Sell Request Received*
-
-// 👤 *Name:* %s
-// 🏘️ *Property Type:* %s
-// 📍 *Address:* %s
-// 💰 *Price* %s
-// 📞 *phone no* : %s
-
-// *Real Estate Team*`, userName, propertyType, address, price, userPhone)
-
-// 	log.Printf("WhatsApp Debug: Message template created, length: %d characters", len(message))
-
-// 	return w.SendMessage(ctx, phoneNumber, message)
-// }
 
 // Event handler for WhatsApp events
 func (w *WhatsAppService) eventHandler(evt interface{}) {

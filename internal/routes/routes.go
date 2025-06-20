@@ -21,6 +21,4 @@ func SetupRoutes(router *gin.Engine, dbpool *pgxpool.Pool, whatsappService *serv
 	// Webhook endpoints
 	protectedRoute.POST("/sell-request", handlers.NewSellRequestHandler(whatsappService))
 
-	// WhatsApp group management endpoints
-	protectedRoute.GET("/whatsapp/groups", handlers.NewGetGroupsHandler(whatsappService))
 }

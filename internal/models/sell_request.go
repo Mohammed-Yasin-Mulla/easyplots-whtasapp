@@ -12,6 +12,7 @@ const (
 	ConstructionWhatsAppPressed    EventType = "CONSTRUCTION_WHATS_APP_PRESSED"
 	ConstructionBrochureDownloaded EventType = "CONSTRUCTION_BROCHURE_DOWNLOADED"
 	CustomPropertySearchRequest    EventType = "CUSTOM_PROPERTY_SEARCH_REQUEST"
+	AccountDeletionRequest         EventType = "ACCOUNT_DELETION_REQUESTED"
 )
 
 // String returns the string representation of the EventType

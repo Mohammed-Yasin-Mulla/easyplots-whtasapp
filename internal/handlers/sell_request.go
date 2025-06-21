@@ -213,6 +213,7 @@ func HandleUserLogs(c *gin.Context) {
 		log.Printf("User %s made a custom property search request", userData.Name)
 		response["action"] = "Custom property search request made"
 		CustomPropertySearch(c, userData)
+	case models.AccountDeletionRequest:
 
 	default:
 		log.Printf("Unknown event type: %s for user %s", logRequestData.EventType, userData.Name)
@@ -361,4 +362,41 @@ Link: https://easyplots.in/property/%d
 Message is not sent to the user, please call them directly.`, user.Name, user.Phone, propertyData.ID, propertyData.Title, propertyData.Size, propertyData.ID)
 
 	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
+}
+
+func AccountDeletionRequest(c *gin.Context, user models.User) {
+	whatsappService, exists := middleware.GetWhatsApp(c)
+	if !exists {
+		// Handle error: service not found
+		return
+	}
+
+	internalWAMessage := fmt.Sprintf(`❌ *Account Deletion Request*
+	user Id: %s
+	👤 *Name:* %s
+	📞 *Phone:* %s
+	`, user.ID, user.Name, user.Phone)
+
+	customerName := "Sir/Madam"
+	if user.Name != "" {
+		customerName = user.Name
+	}
+
+	userFacingMessage := fmt.Sprintf(`Hello %s,
+
+We understand you've requested to delete your account from Easyplots.
+
+We're sorry to see you go! Before we proceed with your account deletion, we'd like to understand if there's anything we could have done better to improve your experience with us.
+
+Your feedback helps us serve our community better.
+
+We'll process your deletion request within 24-48 hours. If you change your mind, please contact us before then.
+
+Thank you for being part of the Easyplots community.
+
+Best regards,
+The Easyplots Team`, customerName)
+
+	whatsappService.SendGroupMessage(c.Request.Context(), services.InternalGroupWhatsAppId, internalWAMessage)
+	whatsappService.SendMessage(c.Request.Context(), user.Phone, userFacingMessage)
 }

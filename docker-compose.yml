@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    # Use the host's network stack. This allows the container to connect to
+    # services on localhost and gives it direct access to the host's network interfaces.
+    network_mode: "host"
+    # When using network_mode: "host", the `ports` configuration is not needed,
+    # as all exposed ports in the container are automatically published on the host.
+    # ports:
+    #   - "8080:8080"
+    # The application will start after the database is ready.
+    # Load environment variables from the .env file.
+    # The .env file must contain the DATABASE_URL for the application to connect to the db service.
+    # Example: DATABASE_URL=postgres://myuser:mypassword@db:5432/mydatabase?sslmode=disable
+    env_file:
+      - .env
+
+#   db:
+#     image: postgres:15-alpine
+#     restart: always
+#     # These environment variables are used to initialize the PostgreSQL database.
+#     # They MUST match the credentials you use in your DATABASE_URL in the .env file.
+#     # docker-compose will automatically read a .env file in the same directory.
+#     environment:
+#       POSTGRES_USER: ${DB_USER}
+#       POSTGRES_PASSWORD: ${DB_PASSWORD}
+#       POSTGRES_DB: ${DB_NAME}
+#     ports:
+#       # Expose PostgreSQL on the host machine for development/debugging.
+#       - "5432:5432"
+#     volumes:
+#       # Persist database data across container restarts.
+#       - postgres_db:/var/lib/postgresql/data
+
+# volumes:
+#   # Define the named volume for data persistence.
+#   postgres_db: 
